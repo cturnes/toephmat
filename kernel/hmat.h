@@ -1018,17 +1018,17 @@ template <class T> LowRankMat<T>* HMat<T>::RMultLowRank(LowRankMat<T>* rhs, cons
     else
     {
         // get the left vectors from the rhs
-        T* temp = (T*)mxMalloc(sizeof(T) * this->n * rhs->Rank());
+        T* temp = (T*)mxMalloc(sizeof(T) * this->n * rankVal);
         rhs->CopyLeftData(temp, this->n, rI, this->n);
         
         // get the new left vectors
         int ldout = 0;
-        T* newLeft = this->RMultDense(temp, rhs->Rank(), this->n, ldout);
+        T* newLeft = this->RMultDense(temp, rankVal, this->n, ldout);
         mxFree(temp);
         
-        temp = (T*)mxMalloc(sizeof(T) * nCols * rhs->Rank());
+        temp = (T*)mxMalloc(sizeof(T) * nCols * rankVal);
         rhs->CopyRightData(temp, nCols, cI, nCols);
-        lhs = new LowRankMat<T>(newLeft, ldout, this->m, temp, nCols, nCols, rhs->Rank());
+        lhs = new LowRankMat<T>(newLeft, ldout, this->m, temp, nCols, nCols, rankVal);
         mxFree(temp);
     }
     return lhs;
@@ -1075,25 +1075,25 @@ template <class T> LowRankMat<T>* HMat<T>::LMultLowRank(LowRankMat<T>* rhs, cons
     else
     {
         // get the right vectors from the rhs
-        T* temp = (T*)mxMalloc(sizeof(T) * this->m * rhs->Rank());
+        T* temp = (T*)mxMalloc(sizeof(T) * this->m * rankVal);
         rhs->CopyRightData(temp, this->m, cI, this->m);
         
         // transpose the right vectors
         int ldtemp = this->m;
-        TransposeInPlace(&temp, this->m, rhs->Rank(), ldtemp);
+        TransposeInPlace(&temp, this->m, rankVal, ldtemp);
         
         // get the new right vectors
         int ldout = 0;
-        T* newRight = this->LMultDense(temp, rhs->Rank(), ldtemp, ldout);
+        T* newRight = this->LMultDense(temp, rankVal, ldtemp, ldout);
         mxFree(temp);
         
         // transpose the new right vectors
-        TransposeInPlace(&newRight, rhs->Rank(), this->n, ldout);
-        temp = (T*)mxMalloc(sizeof(T) * nRows * rhs->Rank());
+        TransposeInPlace(&newRight, rankVal, this->n, ldout);
+        temp = (T*)mxMalloc(sizeof(T) * nRows * rankVal);
         rhs->CopyLeftData(temp, nRows, rI, nRows);
         
         // create new matrix
-        lhs = new LowRankMat<T>(temp, nRows, nRows, newRight, ldout, this->n, rhs->Rank());
+        lhs = new LowRankMat<T>(temp, nRows, nRows, newRight, ldout, this->n, rankVal);
 
         // cleanup
         mxFree(temp);
@@ -1837,27 +1837,42 @@ template <class T> bool HMat<T>::ValidateMetadata(int *metaData, const int nRows
             for (int j = 1; j <= 4; j++)
             {
                 if (metaData[i*NUMMETA+j] < 0)
+                {
+                    mexPrintf("ValidateMetadata -- Invalid subdivison size (%d).\n", i);
                     isValid = false;
+                }
             }
             // check storage locations
             for (int j = 5; j <= 6; j++)
             {
                 if ((metaData[i*NUMMETA+j] < 0) || (metaData[i*NUMMETA+j] >= maxLen))
+                {
+                    mexPrintf("ValidateMetadata -- Storage location is larger than data array (%d).\n", i);
                     isValid = false;
+                }
             }
             // check child indices
             for (int j = 7; j <= 8; j++)
             {
                 if ((metaData[i*NUMMETA+j] < 0) || (metaData[i*NUMMETA+j] >= nRows))
+                {
+                    mexPrintf("ValidateMetadata -- Child indices are invalid (%d).\n", i);
                     isValid = false;
+                }
             }
             // check rank
             int rankMaxNE = imin(metaData[i*NUMMETA+1], metaData[i*NUMMETA+4]);
             int rankMaxSW = imin(metaData[i*NUMMETA+2], metaData[i*NUMMETA+3]);
             if ((metaData[i*NUMMETA+9] < 0) || (metaData[i*NUMMETA+9] > rankMaxNE))
+            {
+                mexPrintf("ValidateMetadata -- Rank is invalid (%d).\n", i);
                 isValid = false;
+            }
             if ((metaData[i*NUMMETA+10] < 0) || (metaData[i*NUMMETA+10] > rankMaxSW))
+            {
+                mexPrintf("ValidateMetadata -- Rank is invalid (%d).\n", i);
                 isValid = false;
+            }
         }
         else
         {
@@ -1868,16 +1883,25 @@ template <class T> bool HMat<T>::ValidateMetadata(int *metaData, const int nRows
                 for (int j = 1; j <= 2; j++)
                 {
                     if (metaData[i*NUMMETA+j] < 0)
+                    {
+                        mexPrintf("ValidateMetadata -- Matrix size is invalid (%d)\n", i);
                         isValid = false;
+                    }
                 }
                 // check storage location
                 if ((metaData[i*NUMMETA+5] < 0) || (metaData[i*NUMMETA+5] >= maxLen))
+                {
+                    mexPrintf("ValidateMetadata -- Storage location is larger than data array (%d).\n", i);
                     isValid = false;
+                }
                 
             }
             // incorrect specifier
             else
+            {
+                mexPrintf("ValidateMetadata -- Invalid specifier (%d).\n", i);
                 isValid = false;
+            }
         }
         // break if we can already tell the meta data is bad
         if (isValid == false)

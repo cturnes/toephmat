@@ -1,0 +1,40 @@
+function L = toeptrans(a)
+% TOEPTRANS  Transformation of a Toeplitz matrix into a corresponding 
+%            Loewner form
+%
+%   T = TOEPTRANS(A) will return an N x N Loewner matrix whose coefficients 
+%   are determined by Fourier-like transformations of the (2N-1) x 1
+%   coefficient matrix A.
+%
+%       See also toep
+%
+%
+%   Christopher K. Turnes
+%   Georgia Institute of Technology
+%   Version:  1.0.0
+%   Date:     22-Apr-2013
+%
+%
+
+    if (isempty(a))
+        error('MATLAB:tltoeptrans:emptyInput', ...
+            'Input coefficient array must be non-empty.');
+    end
+    if (mod(numel(a), 2) == 0)
+        error('MATLAB:tltoeptrans:badInput', ...
+            'Input coefficient array must have odd length.');
+    end
+    
+    % get size
+    n = (size(a, 1) + 1) / 2;
+    
+    % create generator arrays
+    g = zeros(n, 2);
+    g(1, 2) = -1;
+    g(:, 1) = a(n:end) - [0; a(1:(n-1))];
+    h = zeros(n, 2);
+    h(n, 1) = -1;
+    h(:, 2) = a(end:-1:1) -
+    
+
+end

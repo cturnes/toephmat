@@ -18,22 +18,11 @@ function L = tltoeptrans(a)
 %
 %
 
-    if (isempty(a))
-        error('MATLAB:tltoeptrans:emptyInput', ...
-            'Input coefficient matrix must be non-empty.');
-    end
-    if (nnz(mod(size(a), 2)) ~= 2)
-        error('MATLAB:tltoeptrans:badInput', ...
-            'Input coefficient matrix must have odd dimensions.');
-    end
-    if (nnz(size(a) == 1))
-        L = toeptrans(a(:));
-        return;
-    end
+    if (nnz(mod(size(a), 2)
 
     % determine level sizes
-    m = (size(a, 1) + 1) / 2;
-    n = (size(a, 2) + 1) / 2;
+    m = round((size(a, 1) + 1) / 2);
+    n = round((size(a, 2) + 1) / 2);
     
     % create aliased version for transforms
     awrap = [zeros(1, 2*n); zeros(2*m-1, 1), a];
