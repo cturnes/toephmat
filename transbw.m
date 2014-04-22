@@ -5,8 +5,6 @@ function B = transbw(A, m)
 %   been transposed.  The matrix A is defined to have M(1) x M(2) 
 %   blocks.  If M only has one entry, it is assumed that M(2) = M(1).
 %
-%       See also transbl ptransbl ptransbw
-%
 %   Christopher K. Turnes
 %   Georgia Institute of Technology
 %   Version:  2.0.0

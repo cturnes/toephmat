@@ -1,4 +1,22 @@
 function k = morton2(m, n)
+% MORTON2  Morton re-ordering of a 2-D matrix
+%
+%   MORTON2(M,N) will return a index array to be used in a morton re-ordering
+%   of the columns and rows of a two-level matrix whose block size is M x M
+%   and whose block pattern size is N x N.  With the returned index array,
+%   one may construct a permutation matrix
+%
+%       P = SPARSE(MORTON2(M,N), (1:(M*N)), 1, M*N, M*N);
+%
+%   such that P'*A*P will produce a Morton re-ordering of the columns and rows.
+%
+%
+%   Christopher K. Turnes
+%   Georgia Institute of Technology
+%   Version:  1.0.0
+%   Date:     21-Apr-2014
+%
+%
 
     if (nargin < 2)
         n = m;
