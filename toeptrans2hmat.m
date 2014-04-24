@@ -38,7 +38,7 @@ function L = toeptrans2hmat(a, nlim)
     u = zeros(n, 2);
     u(1, 2) = -1;
     u(:, 1) = a(n:end) - [0; a(1:(n-1))];
-    u = ifft(diag(exp(1j*pi/n*(0:(n-1))')) * u) * sqrt(n);
+    u = ifft(spdiags(exp(1j*pi/n*(0:(n-1))'), 0, n, n) * u) * sqrt(n);
     v = zeros(n, 2);
     v(n, 1) = -1;
     v(:, 2) = flipud(conj(a(n:end) + [0; a(1:(n-1))]));
@@ -49,16 +49,17 @@ function L = toeptrans2hmat(a, nlim)
     omminus = omplus * exp(1j*pi/n);
     
     % create structure
-    L.data = [];
+    L.data = zeros(min(n^2, 4096^2), 1);
     L.meta = zeros(11, 0);
     
     % get data
-    L = subdiv(L, u, v, omplus, omminus, 1, 1, n, nlim);
+    [L, dataOffset] = subdiv(L, u, v, omplus, omminus, 1, 1, n, nlim, 1);
+    L.data = L.data(1:(dataOffset-1));
     L.meta = int32(L.meta);
 
 end
 
-function L = subdiv(L, u, v, omplus, omminus, rI, cI, n, nlim)
+function [L, dataOffset] = subdiv(L, u, v, omplus, omminus, rI, cI, n, nlim, dataOffset)
 
     % this meta index
     midx = size(L.meta, 2) + 1;
@@ -75,9 +76,13 @@ function L = subdiv(L, u, v, omplus, omminus, rI, cI, n, nlim)
         M = Num ./ Denom;
         
         % update meta data
-        L.meta(:, midx) = [0, n, n, 0, 0, length(L.data), ...
+        L.meta(:, midx) = [0, n, n, 0, 0, dataOffset-1, ...
                                -1, -1, -1, n, -1]';
-        L.data = [L.data; M(:)];
+        M = M(:);
+        Lm = numel(M);
+        dataIdx = (dataOffset):(dataOffset + Lm - 1);
+        L.data(dataIdx) = M(:);
+        dataOffset = dataOffset + Lm;
         
     else
         
@@ -99,50 +104,58 @@ function L = subdiv(L, u, v, omplus, omminus, rI, cI, n, nlim)
         L.meta(2:5, midx) = [nh1, nh1, nh2, nh2];
         
         % low-rank data from northeast corner
-        Denom = 1 ./ (omminus(idxr1)*on2' - on1*omplus(idxc2).');
+        Csub = (u(idxr1, :)*v(idxc2, :)') ./ (omminus(idxr1)*on2' - on1*omplus(idxc2).');
         if (nh2 >= 64)
-            [U, S, V] = lrsvd(Denom, 0.5);
+            % use denominator as base
+            [U, S, V] = lrsvd(Csub, 0.5);
         else
-            [U, S, V] = svd(Denom);
+            % compute svd on full matrix term
+            [U, S, V] = svd(Csub, 0);
         end
         % determine rank:
         neRank = nnz(diag(S, 0) >= (S(1)*eps*nh1));
-        L.meta(10, midx) = neRank*2;
+        L.meta(10, midx) = neRank;
         S = sqrt(S(1:neRank, 1:neRank));
         U = U(:, 1:neRank) * S;
         V = V(:, 1:neRank) * S;
-        U = [diag(u(idxr1, 1))*U, diag(u(idxr1, 2))*U];
-        V = [diag(v(idxc2, 1))*V, diag(v(idxc2, 2))*V];
-        L.meta(6, midx) = length(L.data);
-        L.data = [L.data; U(:); V(:)];
-        clear U S V Denom;
+        
+        L.meta(6, midx) = dataOffset - 1;
+        LUV = numel(U) + numel(V);
+        dataIdx = (dataOffset):(dataOffset + LUV - 1);
+        L.data(dataIdx) = [U(:); V(:)];
+        dataOffset = dataOffset + LUV;
+        clear U S V Csub dataIdx;
         
         % low-rank data from southwest corner
-        Denom = 1 ./ (omminus(idxr2)*on1' - on2*omplus(idxc1).');
+        Csub = (u(idxr2, :)*v(idxc1, :)') ./ (omminus(idxr2)*on1' - on2*omplus(idxc1).');
         if (nh2 >= 64)
-            [U, S, V] = lrsvd(Denom, 0.5);
+            % use denominator as base
+            [U, S, V] = lrsvd(Csub, 0.5, neRank + 1);
         else
-            [U, S, V] = svd(Denom);
+            % compute svd on full matrix term
+            [U, S, V] = svd(Csub, 0);
         end
         % determine rank:
         swRank = nnz(diag(S, 0) >= (S(1)*eps*nh1));
-        L.meta(11, midx) = swRank*2;
+        L.meta(11, midx) = swRank;
         S = sqrt(S(1:swRank, 1:swRank));
         U = U(:, 1:swRank) * S;
         V = V(:, 1:swRank) * S;
-        U = [diag(u(idxr2, 1))*U, diag(u(idxr2, 2))*U];
-        V = [diag(v(idxc1, 1))*V, diag(v(idxc1, 2))*V];
-        L.meta(7, midx) = length(L.data);
-        L.data = [L.data; U(:); V(:)];
-        clear U S V Denom idxr1 idxr2 idxc1 idxc2 on1 on2;
+        
+        L.meta(7, midx) = dataOffset - 1;
+        LUV = numel(U) + numel(V);
+        dataIdx = (dataOffset):(dataOffset + LUV - 1);
+        L.data(dataIdx) = [U(:); V(:)];
+        dataOffset = dataOffset + LUV;
+        clear U S V Csub dataIdx idxr1 idxr2 idxc1 idxc2 on1 on2;
         
         % set the meta index for the next chunk
         L.meta(8, midx) = midx;
-        L = subdiv(L, u, v, omplus, omminus, rI, cI, nh1, nlim);
+        [L, dataOffset] = subdiv(L, u, v, omplus, omminus, rI, cI, nh1, nlim, dataOffset);
         
         % set the meta index for the next chunk
         L.meta(9, midx) = size(L.meta, 2);
-        L = subdiv(L, u, v, omplus, omminus, rI + nh1, cI + nh1, nh2, nlim);
+        [L, dataOffset] = subdiv(L, u, v, omplus, omminus, rI + nh1, cI + nh1, nh2, nlim, dataOffset);
         
     end
                                          

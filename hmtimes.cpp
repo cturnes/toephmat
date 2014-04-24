@@ -76,14 +76,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         cmpx *y = h->RMultDense(x, nCols, (int)mxGetM(prhs[1]), ldy);
         
         // store result
-        if (nlhs > 0)
-        {
-            plhs[0] = mxCreateDoubleMatrix(hmatDims[0], nCols, mxCOMPLEX);
-            double *ansPr = mxGetPr(plhs[0]), *ansPi = mxGetPi(plhs[0]);
-            for (int i = 0; i < nCols; i++)
-                complex2double(ansPr + i*hmatDims[0], ansPi + i*hmatDims[0], y + i*ldy, hmatDims[0]);
-        }
-        
+		plhs[0] = mxCreateDoubleMatrix(hmatDims[0], nCols, mxCOMPLEX);
+		double *ansPr = mxGetPr(plhs[0]), *ansPi = mxGetPi(plhs[0]);
+		for (int i = 0; i < nCols; i++)
+			complex2double(ansPr + i*hmatDims[0], ansPi + i*hmatDims[0], y + i*ldy, hmatDims[0]);
+
         // clear
         mxFree(y);
         mxFree(x);
@@ -123,13 +120,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         double *y = h->RMultDense(x, nCols, (int)mxGetM(prhs[1]), ldy);
         
         // store result
-        if (nlhs > 0)
-        {
-            plhs[0] = mxCreateDoubleMatrix(hmatDims[0], nCols, mxREAL);
-            double *ansPr = mxGetPr(plhs[0]);
-            for (int i = 0; i < nCols; i++)
-                memcpy(ansPr + i*hmatDims[0], y + i*ldy, sizeof(double)*hmatDims[0]);
-        }
+		plhs[0] = mxCreateDoubleMatrix(hmatDims[0], nCols, mxREAL);
+		double *ansPr = mxGetPr(plhs[0]);
+		for (int i = 0; i < nCols; i++)
+			memcpy(ansPr + i*hmatDims[0], y + i*ldy, sizeof(double)*hmatDims[0]);
         
         // clear
         mxFree(y);

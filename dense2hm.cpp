@@ -61,8 +61,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         delete h;
         
         // create output
-        if (nlhs > 0)
-            plhs[0] = writeStructData(dataOut, meta, dataLen, metaLen);
+        plhs[0] = writeStructData(dataOut, meta, dataLen, metaLen);
         
         // clean up
         mxFree(dataOut);
@@ -79,8 +78,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         delete h;
         
         // create output
-        if (nlhs > 0)
-            plhs[0] = writeStructData(dataOut, meta, dataLen, metaLen);
+        plhs[0] = writeStructData(dataOut, meta, dataLen, metaLen);
         
         // clean up
         mxFree(dataOut);

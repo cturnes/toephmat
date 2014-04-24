@@ -226,7 +226,7 @@ template <class T> class HMat {
                 bool isValid = this->ValidateMetadata(meta, metaLen, dataLen);
                 if (isValid == false)
                 {
-                    mexWarnMsgIdAndTxt("MATLAB:hmat:HMat:badMeta",
+                    mexErrMsgIdAndTxt("MATLAB:hmat:HMat:badMeta",
                         "Supplied metadata is invalid; a default object will be returned.");
                     return;
                 }
@@ -257,11 +257,15 @@ template <class T> class HMat {
                 this->northEast = new LowRankMat<T>(dataIn + meta[NUMMETA*metaIdx + 5], this->dimSub[0], this->dimSub[0],
                                                     dataIn + meta[NUMMETA*metaIdx + 5] + offset, this->dimSub[3], this->dimSub[3],
                                                     neRank);
+                if (neRank > imin(this->dimSub[0], this->dimSub[3]))
+                    (this->northEast)->CompressVectors();
                 int swRank = meta[NUMMETA*metaIdx + 10];
                 offset = swRank * this->dimSub[2];
                 this->southWest = new LowRankMat<T>(dataIn + meta[NUMMETA*metaIdx + 6], this->dimSub[2], this->dimSub[2],
                                                     dataIn + meta[NUMMETA*metaIdx + 6] + offset, this->dimSub[1], this->dimSub[1],
                                                     swRank);
+                if (swRank > imin(this->dimSub[1], this->dimSub[2]))
+                    (this->southWest)->CompressVectors();
                 
                 // build hierarchical components
                 this->northWest = new HMat<T>(dataIn, meta, dataLen, metaLen, meta[NUMMETA*metaIdx + 7], true);
@@ -1423,10 +1427,25 @@ template <class T> void HMat<T>::ApplyInverseLeft(T* rhs, const int nCols, const
         mexErrMsgIdAndTxt("MATLAB:hmat:HMat:ApplyInverseLeft:badInput",
                           "Input data must have at least one column");
     }
+    // input validation
     if (this->m != this->n)
     {
-        mexWarnMsgIdAndTxt("MATLAB:hmat:HMat:ApplyInverseLeft:singular",
+        mexWarnMsgIdAndTxt("MATLAB:hmat:HMat:Invert:singular",
                            "Matrix is singular and cannot be inverted.");
+        return NULL;
+    }
+    if ((this->m == 0) || (this->n == 0))
+    {
+        mexWarnMsgIdAndTxt("MATLAB:hmat:HMat:Invert:empty",
+                           "Matrix is empty.");
+        return NULL;
+    }
+    if ((this->data == NULL) && ((this->northWest == NULL) || (this->northEast == NULL) ||
+                                 (this->southWest == NULL) || (this->southEast == NULL)))
+    {
+        mexWarnMsgIdAndTxt("MATLAB:hmat:HMat:Invert:empty",
+                           "Matrix is empty.");
+        return NULL;
     }
     
     // check if this matrix is dense
@@ -1574,6 +1593,20 @@ template <class T> HMat<T>* HMat<T>::Invert() const
     {
         mexWarnMsgIdAndTxt("MATLAB:hmat:HMat:Invert:singular",
                            "Matrix is singular and cannot be inverted.");
+        return NULL;
+    }
+    if ((this->m == 0) || (this->n == 0))
+    {
+        mexWarnMsgIdAndTxt("MATLAB:hmat:HMat:Invert:empty",
+                           "Matrix is empty.");
+        return NULL;
+    }
+    if ((this->data == NULL) && ((this->northWest == NULL) || (this->northEast == NULL) ||
+                                 (this->southWest == NULL) || (this->southEast == NULL)))
+    {
+        mexWarnMsgIdAndTxt("MATLAB:hmat:HMat:Invert:empty",
+                           "Matrix is empty.");
+        return NULL;
     }
     
     // dense
@@ -1863,14 +1896,16 @@ template <class T> bool HMat<T>::ValidateMetadata(int *metaData, const int nRows
             // check rank
             int rankMaxNE = imin(metaData[i*NUMMETA+1], metaData[i*NUMMETA+4]);
             int rankMaxSW = imin(metaData[i*NUMMETA+2], metaData[i*NUMMETA+3]);
-            if ((metaData[i*NUMMETA+9] < 0) || (metaData[i*NUMMETA+9] > rankMaxNE))
+            if (metaData[i*NUMMETA+9] < 0)
             {
-                mexPrintf("ValidateMetadata -- Rank is invalid (%d).\n", i);
+                mexPrintf("ValidateMetadata -- Rank is invalid [rank %d for size %d x %d] (%d).\n", metaData[i*NUMMETA+9],
+                          metaData[i*NUMMETA+1], metaData[i*NUMMETA+4], i);
                 isValid = false;
             }
-            if ((metaData[i*NUMMETA+10] < 0) || (metaData[i*NUMMETA+10] > rankMaxSW))
+            if (metaData[i*NUMMETA+10] < 0)
             {
-                mexPrintf("ValidateMetadata -- Rank is invalid (%d).\n", i);
+                mexPrintf("ValidateMetadata -- Rank is invalid [rank %d size %d x %d] (%d).\n", metaData[i*NUMMETA+10],
+                          metaData[i*NUMMETA+3], metaData[i*NUMMETA+2], i);
                 isValid = false;
             }
         }

@@ -1,4 +1,4 @@
-function [U,S,V] = lrsvd(A, r)
+function [U,S,V] = lrsvd(A, r, rk)
 % LRSVD  Algorithm to compute the SVD of a low-rank matrix
 %
 %   [U,S,V] = LRSVD(A) will look to reduce the computation involved in
@@ -22,24 +22,31 @@ function [U,S,V] = lrsvd(A, r)
 %
 
     % ratio requirement
-    if (nargin < 2)
+    if ((nargin < 2) || (isempty(r)))
         r = 0.5;
     end
     
-    % try to determine rank
-    i = 64;
-    while (i <= round(r*min(size(A))))
-        
-        % random combination
-        BL = randn(i, size(A, 1));
-        BR = randn(size(A, 2), i);
-        q = BL*A*BR;
-        rk = rank(q);
-        if (rk < i)
-            break;
+    if (nargin < 3)
+    
+        % try to determine rank
+        i = 64;
+        while (i <= round(r*min(size(A))))
+            
+            % random combination
+            BL = randn(i, size(A, 1));
+            BR = randn(size(A, 2), i);
+            q = BL*A*BR;
+            rk = rank(q);
+            if (rk < i)
+                break;
+            end
+            i = i * 2;
+            
         end
-        i = i * 2;
-        
+    else
+        i = 0;
+        BL = randn(rk, size(A, 1));
+        BR = randn(size(A, 2), rk);
     end
     
     % fall back to regular svd

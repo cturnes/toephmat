@@ -36,7 +36,7 @@ function [xh, Hi] = tsolve_hier(a, y, nlim, H, spec)
             'Input coefficient array must have odd length.');
     end
     if ((nargin < 3) || isempty(nlim))
-        nlim = 32;
+        nlim = 64;
     end
     
     % get size
